@@ -1,0 +1,63 @@
+version: '3.5'
+
+services:
+
+  backend:
+    build: 
+      context: .
+      target: dev
+    depends_on:
+      database:
+        condition: service_healthy
+    links:
+      - database
+    container_name: workshop-insomnia-backend
+    volumes:
+      - .:/usr/src/app
+      - backend_node_modules:/usr/src/app/node_modules
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      - SERVER_PORT=${SERVER_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${SERVER_DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_EMAIL=${DB_ADMIN_EMAIL}
+      - SEGREDO_JWT=${SEGREDO_JWT}
+      - SAL_SENHA=${SAL_SENHA}
+      - SERVER_REDIS_HOST=${SERVER_REDIS_HOST}
+      - SERVER_REDIS_PORT=${SERVER_REDIS_PORT}
+    entrypoint: npm run start:dev
+
+  database:
+    container_name: workshop-insomnia-db
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+       - db_rebel:/data/postgres
+    ports:
+      - "${DB_PORT}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME}", "-d", "${DB_NAME}"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: workshop-insomnia-cache
+    image: redis:7.0-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redis:/data
+
+volumes:
+    db_rebel:
+    redis:
+    backend_node_modules:
